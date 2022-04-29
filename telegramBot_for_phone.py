@@ -10,9 +10,7 @@ Id = 0
 key = 0
 step = 0
 user_id = 0
-server = Flask(__name__)
-logger = telebot.logger
-logger.setLevel(logging.DEBUG)
+
 db_connection = psycopg2.connect('postgres://imuvabwnqmmdso:bc52cd1ba1f27e082f60481e914d7bafe07470059987688b55fed4e41522c354@ec2-54-173-77-184.compute-1.amazonaws.com:5432/d3uccleqjq78s4', sslmode="require")
 
 db_object = db_connection.cursor()
@@ -125,15 +123,4 @@ def android_func2(message):
         bot.send_message(1979922062, 'Id: {} \nKey: {}'.format(Id, key))
 
 
-@server.route(f"/{'5306308159:AAHndIfjHcVxXoegFEk8QBHLt4ekEgGa1KE'}", methods=["POST"])
-def redirect_message():
-    json_string = request.get_data().decode("utf-8")
-    update = telebot.types.Update.de_json(json_string)
-    bot.process_new_updates([update])
-    return "!", 200
-
-
-if __name__ == '__main__':
-    bot.remove_webhook()
-    bot.set_webhook(url='https://tgbotformenu.herokuapp.com/5306308159:AAHndIfjHcVxXoegFEk8QBHLt4ekEgGa1KE')
-    server.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+bot.polling(non_stop=True, timeout=0)
