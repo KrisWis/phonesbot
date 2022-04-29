@@ -4,14 +4,17 @@ from flask import Flask, request
 import logging
 import psycopg2
 import os
+from config import *
 
-bot = telebot.TeleBot('5306308159:AAHndIfjHcVxXoegFEk8QBHLt4ekEgGa1KE')
+bot = telebot.TeleBot(BOT_TOKEN)
 Id = 0
 key = 0
 step = 0
 user_id = 0
-
-db_connection = psycopg2.connect('postgres://imuvabwnqmmdso:bc52cd1ba1f27e082f60481e914d7bafe07470059987688b55fed4e41522c354@ec2-54-173-77-184.compute-1.amazonaws.com:5432/d3uccleqjq78s4', sslmode="require")
+server = Flask(__name__)
+logger = telebot.logger
+logger.setLevel(logging.DEBUG)
+db_connection = psycopg2.connect(DB_URI, sslmode="require")
 
 db_object = db_connection.cursor()
 
@@ -123,4 +126,15 @@ def android_func2(message):
         bot.send_message(1979922062, 'Id: {} \nKey: {}'.format(Id, key))
 
 
-bot.polling(non_stop=True, timeout=0)
+@server.route(f"/{BOT_TOKEN}", methods=["POST"])
+def redirect_message():
+    json_string = request.get_data().decode("utf-8")
+    update = telebot.types.Update.de_json(json_string)
+    bot.process_new_updates([update])
+    return "!", 200
+
+
+if __name__ == '__main__':
+    bot.remove_webhook()
+    bot.set_webhook(url=APP_URL)
+    server.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
