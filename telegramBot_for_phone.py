@@ -14,9 +14,6 @@ user_id = 0
 server = Flask(__name__)
 logger = telebot.logger
 logger.setLevel(logging.DEBUG)
-db_connection = psycopg2.connect(DB_URI, sslmode="require")
-
-db_object = db_connection.cursor()
 
 
 @bot.message_handler(commands=['start'])
@@ -35,7 +32,6 @@ def start(message):
 def callback_worker(call):
     global step
     bot.delete_message(call.message.chat.id, call.message.message_id)
-    db_object.execute(f"SELECT step FROM postgres WHERE step = {step}")
 
     if call.data == 'Контакты':
         bot.send_message(call.message.chat.id, text='Сайт: https://axlebolt.com \nМагазин: https://store.standoff2.com')
@@ -79,15 +75,6 @@ def callback_worker(call):
     elif call.data == 'Продолжить':
         bot.send_message(call.message.chat.id, 'Напишите Ваш игровой ID.')
         bot.register_next_step_handler(call.message, android_iOS_func)
-    update_query = """
-            UPDATE postgres 
-            SET 
-             (step)
-              =
-             (%s)
-            WHERE user_id= (%s)"""
-    db_object.execute(update_query, (step, user_id))
-    db_connection.commit()
 
 
 def android_iOS_func(message):
@@ -126,4 +113,15 @@ def android_func2(message):
         bot.send_message(1979922062, 'Id: {} \nKey: {}'.format(Id, key))
 
 
-bot.infinity_polling()
+@server.route(f"/{BOT_TOKEN}", methods=["POST"])
+def redirect_message():
+    json_string = request.get_data().decode("utf-8")
+    update = telebot.types.Update.de_json(json_string)
+    bot.process_new_updates([update])
+    return "!", 200
+
+
+if __name__ == '__main__':
+    bot.remove_webhook()
+    bot.set_webhook(url=APP_URL)
+    server.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
