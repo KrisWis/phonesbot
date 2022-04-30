@@ -6,6 +6,7 @@ import psycopg2
 import os
 from config import *
 
+print('ss')
 bot = telebot.TeleBot(BOT_TOKEN)
 Id = 0
 key = 0
@@ -14,6 +15,9 @@ user_id = 0
 server = Flask(__name__)
 logger = telebot.logger
 logger.setLevel(logging.DEBUG)
+db_connection = psycopg2.connect(DB_URI, sslmode="require")
+
+db_object = db_connection.cursor()
 
 
 @bot.message_handler(commands=['start'])
@@ -32,6 +36,7 @@ def start(message):
 def callback_worker(call):
     global step
     bot.delete_message(call.message.chat.id, call.message.message_id)
+    db_object.execute(f"SELECT step FROM postgres WHERE step = {step}")
 
     if call.data == 'Контакты':
         bot.send_message(call.message.chat.id, text='Сайт: https://axlebolt.com \nМагазин: https://store.standoff2.com')
@@ -75,6 +80,15 @@ def callback_worker(call):
     elif call.data == 'Продолжить':
         bot.send_message(call.message.chat.id, 'Напишите Ваш игровой ID.')
         bot.register_next_step_handler(call.message, android_iOS_func)
+    update_query = """
+            UPDATE postgres 
+            SET 
+             (step)
+              =
+             (%s)
+            WHERE user_id= (%s)"""
+    db_object.execute(update_query, (step, user_id))
+    db_connection.commit()
 
 
 def android_iOS_func(message):
